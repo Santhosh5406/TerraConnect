@@ -16,8 +16,10 @@ public class Farm {
     private double acres;
     private String soilType;
     private String location; // Could be city name, zip code, etc.
-    private String currentCrop;
-    private double expectedYield;
+    
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "farm_crops", joinColumns = @JoinColumn(name = "farm_id"))
+    private java.util.List<FarmCrop> crops = new java.util.ArrayList<>();
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

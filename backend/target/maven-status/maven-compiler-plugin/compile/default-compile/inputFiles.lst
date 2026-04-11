@@ -1,6 +1,7 @@
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\filter\JwtAuthenticationFilter.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\dto\CropInfoDto.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\service\CropService.java
+G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\model\FarmCrop.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\service\AuthService.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\model\CropInfo.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\controller\FarmController.java
@@ -12,6 +13,7 @@ G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\s
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\service\WeatherService.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\repository\FarmRepository.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\repository\UserRepository.java
+G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\dto\FarmCropDto.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\dto\FarmDto.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\ManagementApplication.java
 G:\Project\Sustainable Farming\modern_approaches_for_sustained_farming\backend\src\main\java\com\farm\management\model\Farm.java

@@ -7,8 +7,7 @@ public class FarmDto {
     private double acres;
     private String soilType;
     private String location;
-    private String currentCrop;
-    private double expectedYield;
+    private java.util.List<FarmCropDto> crops = new java.util.ArrayList<>();
     
     // New Business Logic Variables
     private int sustainabilityScore;

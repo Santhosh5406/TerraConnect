@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    CloudRain, CloudSun, Wind, Droplets, Leaf, ShieldAlert,
-    Sprout, MapPin, Ruler, Scaling, Tractor, LogOut, CheckCircle, Lightbulb, Moon, Sun
+    CloudRain, CloudSun, Droplets, Leaf, ShieldAlert,
+    Sprout, MapPin, Ruler, Scaling, Tractor, LogOut, CheckCircle, Lightbulb, Moon, Sun, Plus, Trash2
 } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:8080/api';
@@ -29,7 +29,6 @@ const api = {
     getWeatherForecast: (token, location) => fetch(`${API_BASE_URL}/weather/forecast?location=${location}`, { headers: { 'Authorization': `Bearer ${token}` } }),
 };
 
-// UI Components
 const Card = ({ children, className = '' }) => (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`glass dark:glass-dark rounded-2xl p-6 ${className}`}>
         {children}
@@ -42,10 +41,11 @@ const Button = ({ children, onClick, className = '', disabled = false, variant =
     const variants = {
         primary: "bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50",
         secondary: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700",
-        outline: "bg-transparent text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+        outline: "bg-transparent text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30",
+        danger: "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 dark:bg-red-900/20 dark:border-red-800/50 dark:text-red-400"
     };
     return (
-        <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className}`}>
+        <button onClick={onClick} disabled={disabled} type={onClick ? "button" : "submit"} className={`${baseStyle} ${variants[variant]} ${className}`}>
             {children}
         </button>
     );
@@ -60,11 +60,19 @@ const Spinner = () => (
 const ErrorMessage = ({ message }) => {
     if (!message) return null;
     return (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-red-50/80 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl flex items-center mb-4 text-sm font-medium">
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-red-50/80 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl flex items-center mb-4 text-sm font-medium transition-all">
             <ShieldAlert className="w-5 h-5 mr-2 flex-shrink-0" />
             <span>{message}</span>
         </motion.div>
     );
+};
+
+const validateCrops = (acres, crops) => {
+    const totalAcreage = parseFloat(acres) || 0;
+    const allocated = crops.reduce((sum, c) => sum + (parseFloat(c.acresAllocated) || 0), 0);
+    if (allocated > totalAcreage) return `Crop allocations (${allocated} acres) exceed total farm size (${totalAcreage} acres).`;
+    if (crops.length === 0) return 'You must add at least one crop.';
+    return '';
 };
 
 // Pages
@@ -87,9 +95,7 @@ const LoginPage = ({ onLogin, onSwitch }) => {
         <div className="min-h-screen bg-gradient-mesh dark:bg-slate-900 flex items-center justify-center p-4">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass-dark sm:w-full max-w-md p-8 rounded-[2rem] text-slate-100">
                 <div className="text-center mb-8">
-                    <div className="bg-emerald-500/20 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4">
-                        <Leaf className="text-emerald-400 w-8 h-8" />
-                    </div>
+                    <div className="bg-emerald-500/20 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4"><Leaf className="text-emerald-400 w-8 h-8" /></div>
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-300">TerraConnect</h1>
                     <p className="text-slate-400 mt-2">Welcome back to your digital farm</p>
                 </div>
@@ -111,11 +117,15 @@ const LoginPage = ({ onLogin, onSwitch }) => {
 
 const RegisterPage = ({ onRegister, onSwitch }) => {
     const [user, setUser] = useState(''); const [pass, setPass] = useState('');
-    const [farm, setFarm] = useState({ acres: '', soilType: '', location: '', currentCrop: '', expectedYield: '' });
+    const [farm, setFarm] = useState({ acres: '', soilType: '', location: '', crops: [{ cropName: '', acresAllocated: '', expectedYield: '' }] });
     const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); setLoading(true); setError('');
+        e.preventDefault(); 
+        const validationError = validateCrops(farm.acres, farm.crops);
+        if (validationError) return setError(validationError);
+        
+        setLoading(true); setError('');
         try {
             const res = await api.register(user, pass, farm);
             if (res.ok) onRegister((await res.json()).token);
@@ -123,12 +133,21 @@ const RegisterPage = ({ onRegister, onSwitch }) => {
         } catch { setError('Connection failed.'); } finally { setLoading(false); }
     };
 
+    const handleCropChange = (index, field, val) => {
+        const nc = [...farm.crops];
+        nc[index][field] = val;
+        setFarm({...farm, crops: nc});
+    };
+
+    const addCrop = () => setFarm({...farm, crops: [...farm.crops, {cropName: '', acresAllocated: '', expectedYield: ''}]});
+    const removeCrop = (i) => setFarm({...farm, crops: farm.crops.filter((_, idx)=>idx!==i)});
+
     return (
-        <div className="min-h-screen bg-gradient-mesh dark:bg-slate-900 flex items-center justify-center p-4">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="glass dark:glass-dark dark:bg-slate-800 w-full max-w-xl p-8 rounded-[2rem]">
+        <div className="min-h-screen bg-gradient-mesh dark:bg-slate-900 flex items-center justify-center p-4 py-12">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="glass dark:glass-dark dark:bg-slate-800 w-full max-w-2xl p-8 rounded-[2rem]">
                 <div className="text-center mb-6">
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Start Your Journey</h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2">Join the sustainable farming network</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2">Join the polyculture farming network</p>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <ErrorMessage message={error} />
@@ -136,15 +155,26 @@ const RegisterPage = ({ onRegister, onSwitch }) => {
                         <input placeholder="Username" value={user} onChange={e => setUser(e.target.value)} required className="col-span-2 w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
                         <input type="password" placeholder="Password" value={pass} onChange={e => setPass(e.target.value)} required className="col-span-2 w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
                         
-                        <div className="col-span-2 mt-4 mb-2"><h3 className="font-semibold text-slate-700 dark:text-slate-300">Farm Details</h3></div>
-                        <input type="number" min="0" placeholder="Acres" value={farm.acres} onChange={e => setFarm({...farm, acres: e.target.value})} required className="w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
-                        <input placeholder="Soil Type (e.g. Loam)" value={farm.soilType} onChange={e => setFarm({...farm, soilType: e.target.value})} required className="w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
-                        <input placeholder="Location" value={farm.location} onChange={e => setFarm({...farm, location: e.target.value})} required className="col-span-2 w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
-                        <input placeholder="Current Crop" value={farm.currentCrop} onChange={e => setFarm({...farm, currentCrop: e.target.value})} required className="w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
-                        <input type="number" min="0" placeholder="Expected Yield (Tons)" value={farm.expectedYield} onChange={e => setFarm({...farm, expectedYield: e.target.value})} required className="w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
+                        <div className="col-span-2 mt-4 mb-2"><h3 className="font-semibold text-slate-700 dark:text-slate-300">Total Farm Property</h3></div>
+                        <input type="number" min="0" placeholder="Total Acres" value={farm.acres} onChange={e => setFarm({...farm, acres: e.target.value})} required className="w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none" />
+                        <input placeholder="Base Soil (e.g. Alluvial)" value={farm.soilType} onChange={e => setFarm({...farm, soilType: e.target.value})} required className="w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none" />
+                        <input placeholder="Location" value={farm.location} onChange={e => setFarm({...farm, location: e.target.value})} required className="col-span-2 w-full bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 dark:text-white px-4 py-3 rounded-xl outline-none" />
+                        
+                        <div className="col-span-2 mt-4 flex items-center justify-between border-b dark:border-slate-700 pb-2">
+                            <h3 className="font-semibold text-slate-700 dark:text-slate-300">Crop Partitions</h3>
+                            <Button type="button" onClick={addCrop} variant="outline" size="sm"><Plus className="w-4 h-4"/> Add Crop</Button>
+                        </div>
+                        {farm.crops.map((c, i) => (
+                            <div key={i} className="col-span-2 grid grid-cols-12 gap-2 bg-slate-50 dark:bg-slate-700/30 p-4 rounded-xl border border-slate-100 dark:border-slate-700 relative">
+                                <input placeholder="Crop Name (e.g. Tomato)" required value={c.cropName} onChange={e=>handleCropChange(i, 'cropName', e.target.value)} className="col-span-4 bg-white dark:bg-slate-800 border p-2 rounded-lg dark:border-slate-600 dark:text-white" />
+                                <input type="number" min="0" placeholder="Acres" required value={c.acresAllocated} onChange={e=>handleCropChange(i, 'acresAllocated', e.target.value)} className="col-span-3 bg-white dark:bg-slate-800 border p-2 rounded-lg dark:border-slate-600 dark:text-white" />
+                                <input type="number" min="0" placeholder="Yield (T)" required value={c.expectedYield} onChange={e=>handleCropChange(i, 'expectedYield', e.target.value)} className="col-span-4 bg-white dark:bg-slate-800 border p-2 rounded-lg dark:border-slate-600 dark:text-white" />
+                                {farm.crops.length > 1 && <button type="button" onClick={()=>removeCrop(i)} className="col-span-1 flex items-center justify-center text-red-500 hover:bg-red-100 rounded-lg"><Trash2 className="w-5 h-5"/></button>}
+                            </div>
+                        ))}
                     </div>
                     <Button type="submit" disabled={loading} className="w-full mt-8 shadow-lg">
-                        {loading ? 'Creating Account...' : 'Create Account'}
+                        {loading ? 'Creating Ecosystem...' : 'Establish Farm'}
                     </Button>
                 </form>
                 <p className="text-center text-slate-500 dark:text-slate-400 mt-6 text-sm">
@@ -162,7 +192,7 @@ const MetricCard = ({ title, value, icon: Icon, colorClass, delay=0 }) => (
         </div>
         <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
-            <p className="text-xl font-bold text-slate-800 dark:text-white">{value}</p>
+            <p className="text-xl font-bold text-slate-800 dark:text-white max-w-[200px] truncate" title={value}>{value}</p>
         </div>
     </motion.div>
 );
@@ -171,48 +201,79 @@ const FarmDashboard = ({ token, farm, onUpdate }) => {
     const [edit, setEdit] = useState(false);
     const [data, setData] = useState(farm);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => setData(farm), [farm]);
 
     const handleSave = async () => {
-        setLoading(true);
+        const valError = validateCrops(data.acres, data.crops);
+        if (valError) return setError(valError);
+        
+        setLoading(true); setError('');
         try {
             const res = await api.updateFarmDetails(token, data);
             if (res.ok) onUpdate(await res.json());
             setEdit(false);
-        } finally { setLoading(false); }
+        } catch { setError('Failed to update cluster.'); } finally { setLoading(false); }
     };
+
+    const handleCropChange = (index, field, val) => {
+        const nc = [...data.crops];
+        nc[index][field] = val;
+        setData({...data, crops: nc});
+    };
+    const addCrop = () => setData({...data, crops: [...data.crops, {cropName: '', acresAllocated: '', expectedYield: ''}]});
+    const removeCrop = (i) => setData({...data, crops: data.crops.filter((_, idx)=>idx!==i)});
 
     if (!farm) return null;
 
+    const aggregateYield = farm.crops.reduce((s, c) => s + (parseFloat(c.expectedYield) || 0), 0);
+    const primaryCrop = farm.crops.length > 0 ? farm.crops.reduce((max, c) => (c.acresAllocated > max.acresAllocated) ? c : max) : {cropName: 'None'};
+    const cropsList = farm.crops.map(c => c.cropName).join(', ');
+
     return (
         <div className="space-y-6">
+            <ErrorMessage message={error} />
             <div className="flex justify-between items-center bg-white/50 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><MapPin className="text-emerald-500"/> {data.location}</h2>
-                    <p className="text-slate-500 dark:text-slate-400">Your sustainable farm configuration</p>
+                    <p className="text-slate-500 dark:text-slate-400">Polyculture configuration dashboard</p>
                 </div>
                 {!edit ? <Button onClick={() => setEdit(true)} variant="outline" size="sm">Edit Farm</Button> :
-                 <div className="flex gap-2"><Button onClick={handleSave} disabled={loading} size="sm">Save</Button><Button onClick={()=>setEdit(false)} variant="secondary" size="sm">Cancel</Button></div>}
+                 <div className="flex gap-2"><Button onClick={handleSave} disabled={loading} size="sm">Save</Button><Button onClick={()=>{setEdit(false); setData(farm); setError('');}} variant="secondary" size="sm">Cancel</Button></div>}
             </div>
 
             {edit && (
-                <Card className="bg-white dark:bg-slate-800 !border-emerald-100 dark:!border-emerald-900 border-2">
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div><label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Acres</label><input type="number" min="0" value={data.acres} onChange={e=>setData({...data, acres: e.target.value})} className="mt-1 w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border dark:border-slate-600 rounded-lg" /></div>
-                        <div><label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Soil</label><input value={data.soilType} onChange={e=>setData({...data, soilType: e.target.value})} className="mt-1 w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border dark:border-slate-600 rounded-lg" /></div>
+                <Card className="bg-white dark:bg-slate-800 !border-emerald-100 dark:!border-emerald-900 border-2 space-y-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pb-4 border-b dark:border-slate-700">
+                        <div><label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Total Acres</label><input type="number" min="0" value={data.acres} onChange={e=>setData({...data, acres: e.target.value})} className="mt-1 w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border dark:border-slate-600 rounded-lg" /></div>
+                        <div><label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Base Soil</label><input value={data.soilType} onChange={e=>setData({...data, soilType: e.target.value})} className="mt-1 w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border dark:border-slate-600 rounded-lg" /></div>
                         <div><label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Location</label><input value={data.location} onChange={e=>setData({...data, location: e.target.value})} className="mt-1 w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border dark:border-slate-600 rounded-lg" /></div>
-                        <div><label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Crop</label><input value={data.currentCrop} onChange={e=>setData({...data, currentCrop: e.target.value})} className="mt-1 w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border dark:border-slate-600 rounded-lg" /></div>
-                        <div><label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Yield</label><input type="number" min="0" value={data.expectedYield} onChange={e=>setData({...data, expectedYield: e.target.value})} className="mt-1 w-full p-2 bg-slate-50 dark:bg-slate-700 dark:text-white border dark:border-slate-600 rounded-lg" /></div>
+                    </div>
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Designated Zones</label>
+                            <Button onClick={addCrop} variant="secondary" size="sm"><Plus className="w-4 h-4"/> Add Zone</Button>
+                        </div>
+                        <div className="space-y-2">
+                            {data.crops.map((c, i) => (
+                                <div key={i} className="flex gap-2 bg-slate-50 dark:bg-slate-700/50 p-2 rounded-lg items-center">
+                                    <input placeholder="Crop" value={c.cropName} onChange={e=>handleCropChange(i, 'cropName', e.target.value)} className="w-1/3 bg-white dark:bg-slate-800 p-2 border dark:border-slate-600 rounded dark:text-white text-sm" />
+                                    <input type="number" min="0" placeholder="Acres" value={c.acresAllocated} onChange={e=>handleCropChange(i, 'acresAllocated', e.target.value)} className="w-1/3 bg-white dark:bg-slate-800 p-2 border dark:border-slate-600 rounded dark:text-white text-sm" />
+                                    <input type="number" min="0" placeholder="Yield(T)" value={c.expectedYield} onChange={e=>handleCropChange(i, 'expectedYield', e.target.value)} className="w-1/3 bg-white dark:bg-slate-800 p-2 border dark:border-slate-600 rounded dark:text-white text-sm" />
+                                    {data.crops.length > 1 && <button onClick={()=>removeCrop(i)} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-5 h-5"/></button>}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </Card>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard title="Total Area" value={`${farm.acres} Acres`} icon={Ruler} colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" delay={0.1} />
-                <MetricCard title="Current Crop" value={farm.currentCrop} icon={Sprout} colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" delay={0.2} />
-                <MetricCard title="Expected Yield" value={`${farm.expectedYield}T`} icon={Scaling} colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" delay={0.3} />
-                <MetricCard title="Soil Type" value={farm.soilType} icon={Tractor} colorClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" delay={0.4} />
+                <MetricCard title="Acreage" value={`${farm.acres} Total`} icon={Ruler} colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" delay={0.1} />
+                <MetricCard title={`Crops (${farm.crops.length})`} value={farm.crops.length > 2 ? `${farm.crops.length} Planted` : cropsList || 'None'} icon={Sprout} colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" delay={0.2} />
+                <MetricCard title="Aggregate Yield" value={`${aggregateYield.toFixed(1)}T`} icon={Scaling} colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" delay={0.3} />
+                <MetricCard title="Soil Profile" value={farm.soilType} icon={Tractor} colorClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" delay={0.4} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
@@ -224,19 +285,19 @@ const FarmDashboard = ({ token, farm, onUpdate }) => {
                         <span className="text-emerald-200 mb-2 font-medium">/ 100</span>
                     </div>
                     {farm.sustainabilityScore > 75 ? <p className="mt-4 flex gap-2"><CheckCircle className="w-5 h-5"/> Excellent practices</p> :
-                     <p className="mt-4">Room for improvement</p>}
+                     <p className="mt-4 opacity-90 text-sm py-2">Weighted average of your polyculture health.</p>}
                 </Card>
                 
                 <Card className="lg:col-span-2">
-                    <h3 className="text-lg justify-start font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2"><Lightbulb className="text-amber-500"/> Next Intelligence Insights</h3>
+                    <h3 className="text-lg justify-start font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2"><Lightbulb className="text-amber-500"/> Ecosystem Insights</h3>
                     <div className="space-y-4">
                         <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl flex gap-4 items-start border border-blue-100 dark:border-blue-900/50">
-                            <Droplets className="text-blue-500 mt-1" />
-                            <div><h4 className="font-semibold text-blue-900 dark:text-blue-300">Estimated Water Needs</h4><p className="text-blue-700 dark:text-blue-200/80 text-sm mt-1">Based on {farm.acres} acres of {farm.currentCrop}, you need approximately <b>{Number(farm.waterRequirementLiters).toLocaleString()} Liters</b> for the season.</p></div>
+                            <Droplets className="text-blue-500 mt-1 flex-shrink-0" />
+                            <div><h4 className="font-semibold text-blue-900 dark:text-blue-300">Gross Water Envelope</h4><p className="text-blue-700 dark:text-blue-200/80 text-sm mt-1">Sustaining all {farm.crops.length} zones requires roughly <b>{Number(farm.waterRequirementLiters).toLocaleString(undefined, {maximumFractionDigits:0})} Liters</b> for the season.</p></div>
                         </div>
                         <div className="bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-xl flex gap-4 items-start border border-emerald-100 dark:border-emerald-900/50">
-                            <Leaf className="text-emerald-500 mt-1" />
-                            <div><h4 className="font-semibold text-emerald-900 dark:text-emerald-300">Next Crop Recommendation</h4><p className="text-emerald-800 dark:text-emerald-200/80 text-sm mt-1">To maintain {farm.soilHealthStatus || 'soil'} health, we recommend planting: <b>{farm.recommendedNextCrop || 'Cover or Legumes'}</b> next.</p></div>
+                            <Leaf className="text-emerald-500 mt-1 flex-shrink-0" />
+                            <div><h4 className="font-semibold text-emerald-900 dark:text-emerald-300">Phase Shift Recommendations</h4><p className="text-emerald-800 dark:text-emerald-200/80 text-sm mt-1">Based on '{primaryCrop.cropName}' taking the primary partition, plan to sow: <b>{farm.recommendedNextCrop}</b> next to restore properties.</p></div>
                         </div>
                     </div>
                 </Card>
@@ -245,45 +306,71 @@ const FarmDashboard = ({ token, farm, onUpdate }) => {
     );
 };
 
-const CropDashboard = ({ token, crop }) => {
+const CropIntelligenceWidget = ({ token, cropName }) => {
     const [info, setInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!crop) { setLoading(false); setError('No crop defined.'); return; }
-        api.getCropInfo(token, crop).then(r => r.ok ? r.json() : Promise.reject('No data for this crop.')).then(setInfo).catch(setError).finally(()=>setLoading(false));
-    }, [crop, token]);
+        if (!cropName) { setLoading(false); return; }
+        setLoading(true);
+        api.getCropInfo(token, cropName).then(r => r.ok ? r.json() : Promise.reject('No data for this crop.')).then(setInfo).catch(setError).finally(()=>setLoading(false));
+    }, [cropName, token]);
+
+    if (loading) return <div className="py-12"><Spinner /></div>;
+    if (error) return <ErrorMessage message={error}/>;
+    if (!info) return null;
 
     return (
-        <Card className="max-w-3xl mx-auto mt-8 relative overflow-hidden dark:bg-slate-800">
-            <div className="absolute top-0 right-0 p-8 opacity-5"><Sprout className="w-48 h-48" /></div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-3"><Sprout className="text-emerald-500"/>Crop Knowledge Base</h2>
-            {loading ? <Spinner /> : error ? <ErrorMessage message={error}/> : (
-                <div className="space-y-6 relative z-10">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-2xl border border-green-100 dark:border-green-800/50 col-span-1 md:col-span-2">
-                            <h3 className="font-bold text-green-900 dark:text-green-300 text-lg mb-2">Best Practices for {info.cropName}</h3>
-                            <p className="text-green-800 dark:text-green-200 leading-relaxed">{info.bestPractices}</p>
-                        </div>
-                        
-                        {(info.companionPlants || info.optimalPhLevel) && (
-                            <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                                <h3 className="font-bold text-blue-900 dark:text-blue-300 text-lg mb-4 flex items-center gap-2"><Leaf className="w-5 h-5"/> Growth Intelligence</h3>
-                                <div className="space-y-3">
-                                    {info.companionPlants && <p className="text-sm text-blue-800 dark:text-blue-200"><span className="font-semibold block text-blue-950 dark:text-blue-100">Companion Plants</span> {info.companionPlants}</p>}
-                                    {info.optimalPhLevel && <p className="text-sm text-blue-800 dark:text-blue-200"><span className="font-semibold block text-blue-950 dark:text-blue-100">Optimal pH Level</span> {info.optimalPhLevel}</p>}
-                                    {info.averageGrowthCycle && <p className="text-sm text-blue-800 dark:text-blue-200"><span className="font-semibold block text-blue-950 dark:text-blue-100">Avg Growth Cycle</span> {info.averageGrowthCycle}</p>}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl border border-red-100 dark:border-red-800/50">
-                            <h3 className="font-bold text-red-900 dark:text-red-300 text-lg mb-2 flex gap-2 items-center"><ShieldAlert className="w-5 h-5"/> Potential Diseases</h3>
-                            <p className="text-red-800 dark:text-red-200 leading-relaxed">{info.potentialDiseases}</p>
+        <div className="space-y-6 relative z-10 animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-2xl border border-green-100 dark:border-green-800/50 col-span-1 md:col-span-2 shadow-sm">
+                    <h3 className="font-bold text-green-900 dark:text-green-300 text-lg mb-2 capitalize">Cultivation Guide: {info.cropName}</h3>
+                    <p className="text-green-800 dark:text-green-200 leading-relaxed text-sm">{info.bestPractices}</p>
+                </div>
+                
+                {(info.companionPlants || info.optimalPhLevel) && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                        <h3 className="font-bold text-blue-900 dark:text-blue-300 text-lg mb-4 flex items-center gap-2"><Leaf className="w-5 h-5"/> Growth Matrix</h3>
+                        <div className="space-y-3">
+                            {info.companionPlants && <p className="text-sm text-blue-800 dark:text-blue-200"><span className="font-semibold block text-blue-950 dark:text-blue-100 mb-1">Companions</span> {info.companionPlants}</p>}
+                            {info.optimalPhLevel && <p className="text-sm text-blue-800 dark:text-blue-200"><span className="font-semibold block text-blue-950 dark:text-blue-100 mb-1">Soil pH Targets</span> {info.optimalPhLevel}</p>}
+                            {info.averageGrowthCycle && <p className="text-sm text-blue-800 dark:text-blue-200"><span className="font-semibold block text-blue-950 dark:text-blue-100 mb-1">Growth Index</span> {info.averageGrowthCycle}</p>}
                         </div>
                     </div>
+                )}
+
+                <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl border border-red-100 dark:border-red-800/50 shadow-sm">
+                    <h3 className="font-bold text-red-900 dark:text-red-300 text-lg mb-2 flex gap-2 items-center"><ShieldAlert className="w-5 h-5"/> Biological Threats</h3>
+                    <p className="text-red-800 dark:text-red-200 leading-relaxed text-sm">{info.potentialDiseases}</p>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+const CropDashboard = ({ token, crops }) => {
+    const validCrops = crops && crops.length > 0 ? crops : [];
+    const [selectedIdx, setSelectedIdx] = useState(0);
+
+    return (
+        <Card className="max-w-4xl mx-auto mt-8 relative overflow-hidden dark:bg-slate-800">
+            <div className="absolute top-0 right-0 p-8 opacity-5"><Sprout className="w-48 h-48" /></div>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-3"><Sprout className="text-emerald-500"/>Crop Knowledge Base</h2>
+            
+            {validCrops.length === 0 ? (
+                <div className="p-8 text-center text-slate-500">No crops allocated to your farm yet. Add zones in the Overview tab.</div>
+            ) : (
+                <>
+                    <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar relative z-10 border-b dark:border-slate-700">
+                        {validCrops.map((c, i) => (
+                            <button key={i} onClick={() => setSelectedIdx(i)} className={`px-4 py-2 rounded-t-lg font-semibold transition-colors whitespace-nowrap ${selectedIdx === i ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border-b-2 border-emerald-500' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400'}`}>
+                                {c.cropName} ({c.acresAllocated} Ac)
+                            </button>
+                        ))}
+                    </div>
+                    <CropIntelligenceWidget token={token} cropName={validCrops[selectedIdx].cropName} />
+                </>
             )}
         </Card>
     );
@@ -303,7 +390,6 @@ const WeatherForecast = ({ token, location }) => {
     if(error) return <Card><ErrorMessage message={error}/></Card>;
     if(!data || !data.list) return <Card><ErrorMessage message="No forecast data returned."/></Card>;
 
-    // OpenWeatherMap returns 3-hour forecasts, group by day briefly or just show next 5 days
     const dailyForecasts = data.list.filter((item, index) => index % 8 === 0).slice(0, 5);
 
     return (
@@ -348,7 +434,7 @@ const MainDashboard = ({ onLogout }) => {
     }, [isDark]);
 
     const tabs = [
-        { id: 'farm', label: 'Overview', icon: LayoutDashboardIcon },
+        { id: 'farm', label: 'Polyculture Overview', icon: LayoutDashboardIcon },
         { id: 'crop', label: 'Crop Intelligence', icon: Lightbulb },
         { id: 'weather', label: 'Weather Tracker', icon: CloudRain }
     ];
@@ -357,7 +443,6 @@ const MainDashboard = ({ onLogout }) => {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col md:flex-row transition-colors duration-300">
-            {/* Sidebar Navigation */}
             <nav className="w-full md:w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col shadow-sm z-10 sticky top-0 md:h-screen transition-colors duration-300">
                 <div className="p-6 md:p-8 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -384,7 +469,6 @@ const MainDashboard = ({ onLogout }) => {
                 </div>
             </nav>
 
-            {/* Main Content Area */}
             <main className="flex-1 p-6 md:p-10 overflow-y-auto w-full relative">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-100 dark:bg-emerald-900/20 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-[100px] opacity-70 -z-10 animate-blob"></div>
                 <div className="absolute top-0 right-72 w-96 h-96 bg-teal-100 dark:bg-teal-900/20 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-[100px] opacity-70 -z-10 animate-blob animation-delay-2000"></div>
@@ -392,8 +476,8 @@ const MainDashboard = ({ onLogout }) => {
                 <AnimatePresence mode="wait">
                     <motion.div key={page} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                         {page === 'farm' && <FarmDashboard token={token} farm={farm} onUpdate={setFarm} />}
-                        {page === 'crop' && <CropDashboard token={token} crop={farm.currentCrop} />}
-                        {page === 'weather' && <WeatherForecast token={token} location={farm.location} />}
+                        {page === 'crop' && <CropDashboard token={token} crops={farm?.crops || []} />}
+                        {page === 'weather' && <WeatherForecast token={token} location={farm?.location} />}
                     </motion.div>
                 </AnimatePresence>
             </main>
@@ -401,9 +485,7 @@ const MainDashboard = ({ onLogout }) => {
     );
 };
 
-// Fallback icon for Dashboard since lucide LayoutDashboard wasn't explicitly destructured from top
 const LayoutDashboardIcon = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
-
 
 export default function App() {
     const { token, saveToken, removeToken } = useAuthToken();

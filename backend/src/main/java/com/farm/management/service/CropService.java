@@ -66,6 +66,14 @@ public class CropService {
             dto.setCompanionPlants("Maize, Sorghum, Pearl Millet");
             dto.setOptimalPhLevel("6.0 to 6.5 (Sandy Loam/Red)");
             dto.setAverageGrowthCycle("90 - 120 Days");
+        } else if (name.contains("onion")) {
+            dto.setCompanionPlants("Carrots, Lettuce, Chamomile");
+            dto.setOptimalPhLevel("6.0 to 7.0 (Loose, well-draining)");
+            dto.setAverageGrowthCycle("90 - 150 Days");
+        } else if (name.contains("tomato")) {
+            dto.setCompanionPlants("Basil, Marigold, Garlic");
+            dto.setOptimalPhLevel("6.0 to 6.8 (Loamy/Sandy Loam)");
+            dto.setAverageGrowthCycle("60 - 100 Days");
         } else {
             dto.setCompanionPlants("General Cover Crops (clover, alfalfa)");
             dto.setOptimalPhLevel("6.0 to 7.0");

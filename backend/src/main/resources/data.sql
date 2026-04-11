@@ -15,7 +15,9 @@ INSERT IGNORE INTO crop_info (id, crop_name, best_practices, potential_diseases)
 (6, 'Cotton', 'Best practices for cotton: Ideal in deep Black soil (Regur). Requires a long frost-free period and high temperature. Avoid waterlogging during flowering.', 'Common diseases: Bollworm infestation, Leaf Curl Virus, Wilt. Crop rotation and timely pesticide use are critical.'),
 (7, 'Pearl Millet (Bajra)', 'Best practices for bajra: Highly drought-tolerant, best suited for Sandy or Laterite soils. Avoid waterlogged areas. Requires minimal fertilization compared to other cereals.', 'Common diseases: Downy Mildew, Ergot, Smut. Use certified seeds to prevent ergot outbreaks.'),
 (8, 'Groundnut', 'Best practices for groundnut: Plant in loose, friable Sandy Loam or Red soil to allow peg penetration. Ensure adequate calcium levels during pegging.', 'Common diseases: Tikka disease (Leaf Spot), Collar Rot, Rust. Maintain proper spacing to reduce moisture build-up.'),
-(9, 'Chickpea (Chana)', 'Best practices for chickpea: Grown best in Black or Red soils as a rabi (winter) crop. Requires cool climate and avoids excessive rain during flowering.', 'Common diseases: Fusarium Wilt, Ascochyta Blight, Pod Borer. Treat seeds before sowing.');
+(9, 'Chickpea (Chana)', 'Best practices for chickpea: Grown best in Black or Red soils as a rabi (winter) crop. Requires cool climate and avoids excessive rain during flowering.', 'Common diseases: Fusarium Wilt, Ascochyta Blight, Pod Borer. Treat seeds before sowing.'),
+(10, 'Onion', 'Best practices for onion: Soil should be loose, well-draining, and rich in organic matter. Avoid highly acidic soils. Water regularly but avoid waterlogging to prevent rot.', 'Common diseases: Downy Mildew, Purple Blotch, Neck Rot. Ensure proper bulb curing after harvest.'),
+(11, 'Tomato', 'Best practices for tomato: Prefers loamy to sandy loam soils. Requires excellent drainage and consistent watering to avoid Blossom End Rot. Needs proper staking or caging.', 'Common diseases: Late Blight, Early Blight, Fusarium Wilt. Avoid overhead watering to keep foliage dry.');
 
 -- Inserting a mock user for easy login and testing
 -- Username: 'farmer_john', Password: 'password123'
@@ -24,6 +26,10 @@ INSERT IGNORE INTO users (id, username, password) VALUES
 (1, 'farmer_john', '$2a$10$EAX1i09L9pFTk.dGg9R3i.d/aI3G8.wTnrFbiYssD8LpJGXb/q/iS');
 
 -- Inserting farm details for the mock user
-INSERT IGNORE INTO farm (id, user_id, acres, soil_type, location, current_crop, expected_yield) VALUES
-(1, 1, 150.5, 'Clay Loam', 'Davis', 'Corn', 300);
+INSERT IGNORE INTO farm (id, user_id, acres, soil_type, location) VALUES
+(1, 1, 150.5, 'Clay Loam', 'Davis');
 
+-- Inserting crop allocations for farmer_john's farm
+INSERT IGNORE INTO farm_crops (farm_id, crop_name, acres_allocated, expected_yield) VALUES
+(1, 'Corn', 100.0, 200.0),
+(1, 'Soybean', 50.5, 100.0);
