@@ -16,7 +16,7 @@ public class CropController {
     }
 
     @GetMapping("/{cropName}")
-    public ResponseEntity<CropInfoDto> getCropInfo(@PathVariable String cropName) {
+    public ResponseEntity<CropInfoDto> getCropInfo(@PathVariable("cropName") String cropName) {
         CropInfoDto cropInfo = cropService.getCropInfoByName(cropName);
         return ResponseEntity.ok(cropInfo);
     }

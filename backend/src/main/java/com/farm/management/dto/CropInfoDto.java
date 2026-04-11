@@ -7,4 +7,9 @@ public class CropInfoDto {
     private String cropName;
     private String bestPractices;
     private String potentialDiseases;
+    
+    // New Crop Intelligence fields
+    private String companionPlants;
+    private String optimalPhLevel;
+    private String averageGrowthCycle;
 }
