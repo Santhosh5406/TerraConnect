@@ -12,5 +12,7 @@ import lombok.NoArgsConstructor;
 public class FarmCrop {
     private String cropName;
     private double acresAllocated;
+    
+    // Server-calculated yield mapping based on acres
     private double expectedYield;
 }

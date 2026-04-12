@@ -12,4 +12,8 @@ public class CropInfoDto {
     private String companionPlants;
     private String optimalPhLevel;
     private String averageGrowthCycle;
+    private String fertilizerRecommendation;
+    private String pesticideRecommendation;
+    private String commonPests;
+    private String generalInfo;
 }

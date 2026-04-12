@@ -43,6 +43,7 @@ public class AuthService {
         Farm newFarm = new Farm();
         newFarm.setAcres(request.getFarmDetails().getAcres());
         newFarm.setSoilType(request.getFarmDetails().getSoilType());
+        newFarm.setSoilQuality(request.getFarmDetails().getSoilQuality());
         newFarm.setLocation(request.getFarmDetails().getLocation());
         
         if (request.getFarmDetails().getCrops() != null) {
@@ -51,7 +52,7 @@ public class AuthService {
                     com.farm.management.model.FarmCrop fc = new com.farm.management.model.FarmCrop();
                     fc.setCropName(dto.getCropName());
                     fc.setAcresAllocated(dto.getAcresAllocated());
-                    fc.setExpectedYield(dto.getExpectedYield());
+                    fc.setExpectedYield(com.farm.management.service.FarmService.calculateCropYield(dto.getCropName(), dto.getAcresAllocated(), newFarm.getSoilQuality()));
                     return fc;
                 }).toList()
             );

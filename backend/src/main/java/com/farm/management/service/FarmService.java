@@ -31,32 +31,59 @@ public class FarmService {
 
     @Transactional
     public FarmDto updateFarmDetails(String username, FarmDto farmDto) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
-        Farm farm = farmRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException("Farm not found for user"));
-
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Farm farm = farmRepository.findByUserId(user.getId()).orElseThrow();
+        
         farm.setAcres(farmDto.getAcres());
         farm.setSoilType(farmDto.getSoilType());
+        farm.setSoilQuality(farmDto.getSoilQuality());
         farm.setLocation(farmDto.getLocation());
         
         farm.getCrops().clear();
         if (farmDto.getCrops() != null) {
-            farm.getCrops().addAll(farmDto.getCrops().stream().map(dto -> {
-                FarmCrop fc = new FarmCrop();
-                fc.setCropName(dto.getCropName());
-                fc.setAcresAllocated(dto.getAcresAllocated());
-                fc.setExpectedYield(dto.getExpectedYield());
-                return fc;
-            }).collect(Collectors.toList()));
+            farm.getCrops().addAll(
+                farmDto.getCrops().stream().map(dto -> {
+                    FarmCrop fc = new FarmCrop();
+                    fc.setCropName(dto.getCropName());
+                    fc.setAcresAllocated(dto.getAcresAllocated());
+                    fc.setExpectedYield(calculateCropYield(dto.getCropName(), dto.getAcresAllocated(), farm.getSoilQuality()));
+                    return fc;
+                }).toList()
+            );
         }
-
-        Farm updatedFarm = farmRepository.save(farm);
-        return convertToDto(updatedFarm);
+        
+        farmRepository.save(farm);
+        return convertToDto(farm);
+    }
+    
+    public static double calculateCropYield(String cropName, double acres, String soilQuality) {
+        if (cropName == null) return 0.0;
+        String name = cropName.toLowerCase();
+        double baseTonsPerAcre = 1.5; // fallback
+        
+        if (name.contains("corn")) baseTonsPerAcre = 3.5;
+        else if (name.contains("rice")) baseTonsPerAcre = 2.0;
+        else if (name.contains("wheat")) baseTonsPerAcre = 1.5;
+        else if (name.contains("soybean")) baseTonsPerAcre = 1.0;
+        else if (name.contains("sugarcane")) baseTonsPerAcre = 30.0;
+        else if (name.contains("banana")) baseTonsPerAcre = 15.0;
+        else if (name.contains("mango")) baseTonsPerAcre = 4.0;
+        else if (name.contains("onion")) baseTonsPerAcre = 12.0;
+        else if (name.contains("tomato")) baseTonsPerAcre = 18.0;
+        else if (name.contains("cotton")) baseTonsPerAcre = 0.5;
+        
+        double multiplier = 1.0;
+        if ("Poor".equalsIgnoreCase(soilQuality)) multiplier = 0.8;
+        else if ("Premium".equalsIgnoreCase(soilQuality)) multiplier = 1.3;
+        
+        return baseTonsPerAcre * acres * multiplier;
     }
 
     private FarmDto convertToDto(Farm farm) {
         FarmDto dto = new FarmDto();
         dto.setAcres(farm.getAcres());
         dto.setSoilType(farm.getSoilType());
+        dto.setSoilQuality(farm.getSoilQuality());
         dto.setLocation(farm.getLocation());
         
         if (farm.getCrops() != null) {
@@ -90,25 +117,41 @@ public class FarmService {
             int score = 50; // base score for this zone
             String crop = fc.getCropName() != null ? fc.getCropName().toLowerCase() : "";
             String soil = farm.getSoilType() != null ? farm.getSoilType().toLowerCase() : "";
+            String quality = farm.getSoilQuality() != null ? farm.getSoilQuality().toLowerCase() : "normal";
             
-            if (crop.contains("legume") || crop.contains("beans") || crop.contains("peas") || crop.contains("alfalfa") || crop.contains("soy") || crop.contains("groundnut") || crop.contains("chickpea")) {
-                score += 30;
-            } else if (crop.contains("corn") || crop.contains("cotton") || crop.contains("sugarcane")) {
+            // Crop impacts
+            if (crop.contains("legume") || crop.contains("beans") || crop.contains("peas") || crop.contains("soy") || crop.contains("groundnut")) {
+                score += 30; // Nitrogen fixers
+            } else if (crop.contains("wheat") || crop.contains("corn") || crop.contains("tomato") || crop.contains("onion")) {
+                score += 5; // Neutral-ish
+            } else if (crop.contains("rice") || crop.contains("cotton") || crop.contains("sugarcane")) {
+                score -= 15; // High resource exhaustion
+            }
+            
+            // Soil context impacts
+            if (soil.contains("loam") || soil.contains("alluvial")) {
+                score += 20;
+            } else if (soil.contains("clay")) {
+                score += 10;
+            } else if (soil.contains("sand")) {
                 score -= 10;
             }
             
-            if (soil.contains("loam") || soil.contains("alluvial")) {
-                score += 20;
-            } else if (soil.contains("clay") || soil.contains("black") || soil.contains("regur")) {
-                score += 10;
-            }
+            // Quality impacts
+            if (quality.contains("premium")) score += 10;
+            else if (quality.contains("poor")) score -= 15;
             
             totalWeightedScore += score * fc.getAcresAllocated();
             totalAcres += fc.getAcresAllocated();
         }
         
         if (totalAcres == 0) return 50;
-        return (int) Math.min(100, Math.max(0, totalWeightedScore / totalAcres));
+        double baseScore = totalWeightedScore / totalAcres;
+        
+        // Polyculture bonus
+        baseScore += (farm.getCrops().size() - 1) * 8; 
+        
+        return (int) Math.min(100, Math.max(10, baseScore));
     }
 
     private double calculateWaterRequirements(Farm farm) {

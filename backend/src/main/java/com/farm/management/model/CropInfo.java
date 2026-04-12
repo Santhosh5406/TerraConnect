@@ -20,4 +20,20 @@ public class CropInfo {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String potentialDiseases;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String fertilizerRecommendation;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String pesticideRecommendation;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String commonPests;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String generalInfo;
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 public class FarmDto {
     private double acres;
     private String soilType;
+    private String soilQuality;
     private String location;
     private java.util.List<FarmCropDto> crops = new java.util.ArrayList<>();
     

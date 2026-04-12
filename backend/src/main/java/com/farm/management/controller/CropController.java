@@ -16,8 +16,8 @@ public class CropController {
     }
 
     @GetMapping("/{cropName}")
-    public ResponseEntity<CropInfoDto> getCropInfo(@PathVariable("cropName") String cropName) {
-        CropInfoDto cropInfo = cropService.getCropInfoByName(cropName);
+    public ResponseEntity<CropInfoDto> getCropInfo(@PathVariable("cropName") String cropName, @RequestParam(value="lang", defaultValue="en") String lang) {
+        CropInfoDto cropInfo = cropService.getCropInfoByName(cropName, lang);
         return ResponseEntity.ok(cropInfo);
     }
 }

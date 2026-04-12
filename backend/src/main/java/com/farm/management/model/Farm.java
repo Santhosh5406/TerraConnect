@@ -15,6 +15,7 @@ public class Farm {
 
     private double acres;
     private String soilType;
+    private String soilQuality; // 'Poor', 'Normal', 'Premium'
     private String location; // Could be city name, zip code, etc.
     
     @ElementCollection(fetch = FetchType.EAGER)
