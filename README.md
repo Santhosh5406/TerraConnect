@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🌿 TerraConnect
 
 **Modern Approaches for Sustained Farming**
@@ -68,3 +69,6 @@ npm run dev
 
 ## 📝 License
 This project was designed for open-source agricultural improvement strategies. Feel free to fork, expand the Crop Intelligence DB, and optimize translation dictionaries!
+=======
+# TerraConnect
+>>>>>>> 3cf7113013d1ca8112aae75da30b394fa0dfa646
